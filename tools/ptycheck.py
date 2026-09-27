@@ -24,6 +24,7 @@ ALT_OFF = b"\x1b[?1049l"
 CUR_HIDE = b"\x1b[?25l"
 CUR_SHOW = b"\x1b[?25h"
 CURSOR_RE = re.compile(rb"\x1b\[[0-9;]*H")
+CANVAS_BG = b"\x1b[48;2;3;4;9m"   # the explicit background frame_clear paints
 
 
 def set_size(fd, cols, rows):
@@ -62,6 +63,11 @@ def main():
         argv.append("--no-audio")
     argv += a.args
 
+    # Pin the terminal capabilities so the colour assertions below are
+    # deterministic no matter what the caller's environment looks like.
+    os.environ["TERM"] = "xterm-256color"
+    os.environ["COLORTERM"] = "truecolor"
+
     pid, fd = pty.fork()
     if pid == 0:
         os.execv(a.bin, argv)
@@ -99,6 +105,7 @@ def main():
         ("left alternate screen", ALT_OFF in text),
         ("hid the cursor", CUR_HIDE in text),
         ("restored the cursor", CUR_SHOW in text),
+        ("painted the canvas", CANVAS_BG in text),
         ("drew frames", frames > 20),
         ("handled the resize", text.count(b"\x1b[2J") >= 1),
         ("exited cleanly", os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0),

@@ -47,6 +47,8 @@ void frame_alloc(Frame *f, int w, int h);
 void frame_free(Frame *f);
 void frame_clear(Frame *f, Rgb fg);
 void frame_set_bg(Frame *f, Rgb bg);
+/* Mark every cell as unknown so the next present repaints all of it. */
+void frame_invalidate(Frame *f);
 
 /* ------------------------------------------------------------------ gfx API */
 
@@ -89,6 +91,12 @@ void fb_sprite_center(Frame *f, const char *name, int cx, int cy, double scale,
 int  fb_sprite_size(const char *name, int *w, int *h);
 
 /* Post-processing passes. */
+/* Push shadows down and highlights up: without this the mid-tones of the
+ * artwork and of the background texture sit at the same brightness. */
+void fb_contrast(Frame *f, double amount);
+/* Dim whatever is already drawn inside an ellipse (a spotlight backdrop for
+ * the subject, so it separates from the surrounding texture). */
+void fb_scrim_ellipse(Frame *f, double cx, double cy, double rx, double ry, double k);
 void fb_shade(Frame *f, double k);
 /* Dim a rectangle of cells (used to keep text readable over busy artwork). */
 void fb_dim_rect(Frame *f, int x, int y, int w, int h, double k);
@@ -160,6 +168,9 @@ typedef struct {
     bool        hud;
     int         force_w, force_h;
     bool        quiet;
+    bool        canvas_solid;  /* paint our own background (default on)   */
+    Rgb         canvas_bg;     /* colour of that background               */
+    double      contrast;      /* 0 = off, 1 = full tone map             */
 
     /* Offline modes. */
     const char *export_dir;

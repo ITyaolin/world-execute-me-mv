@@ -139,11 +139,23 @@ void frame_free(Frame *f)
 void frame_clear(Frame *f, Rgb fg)
 {
     int n = f->w * f->h;
+    /* The canvas is painted explicitly: otherwise the artwork (which is drawn
+     * for a dark screen) is at the mercy of the terminal's own theme. */
+    int solid = CFG.canvas_solid ? 1 : 0;
     for (int i = 0; i < n; i++) {
         f->cells[i].ch = 0;
         f->cells[i].fg = fg;
-        f->cells[i].bg = RGB(0, 0, 0);
-        f->cells[i].has_bg = 0;
+        f->cells[i].bg = CFG.canvas_bg;
+        f->cells[i].has_bg = solid;
+    }
+}
+
+void frame_invalidate(Frame *f)
+{
+    int n = f->w * f->h;
+    for (int i = 0; i < n; i++) {
+        f->cells[i].ch = 0;
+        f->cells[i].has_bg = -1;   /* matches nothing */
     }
 }
 
@@ -399,7 +411,8 @@ void fb_sprite(Frame *f, const char *name, int x, int y, Rgb dim, Rgb bright,
             if (reveal < 1.0 && order + mv_noise2(px, py, 33) * 0.15 > reveal) continue;
             double d = mv_density((unsigned char)row[c]) * clampd(gain, 0.0, 2.0);
             d = clampd(d, 0.0, 1.0);
-            Rgb col = rgb_mix(dim, bright, d);
+            /* Even the sparsest ink of the subject stays well clear of black. */
+            Rgb col = rgb_mix(rgb_mix(dim, bright, 0.45), bright, d * 0.85);
             fb_put(f, px, py, (unsigned char)row[c], col);
         }
     }
@@ -414,6 +427,8 @@ void fb_sprite_center(Frame *f, const char *name, int cx, int cy, double scale,
     if (tw < 1) tw = 1;
     if (th < 1) th = 1;
     int x0 = cx - tw / 2, y0 = cy - th / 2;
+    /* Spotlight: dim the texture right behind the subject. */
+    fb_scrim_ellipse(f, cx, cy, tw * 0.62, th * 0.72, 0.62);
     for (int r = 0; r < th; r++) {
         int sr = (int)((double)r * sp->h / th);
         const char *row = sp->rows[clampi(sr, 0, sp->h - 1)];
@@ -427,12 +442,69 @@ void fb_sprite_center(Frame *f, const char *name, int cx, int cy, double scale,
             if (reveal < 1.0 && order + mv_noise2(px, py, 33) * 0.15 > reveal) continue;
             double d = mv_density((unsigned char)g) * clampd(gain, 0.0, 2.0);
             d = clampd(d, 0.0, 1.0);
-            fb_put(f, px, py, (unsigned char)g, rgb_mix(dim, bright, d));
+            fb_put(f, px, py, (unsigned char)g,
+                   rgb_mix(rgb_mix(dim, bright, 0.45), bright, d * 0.85));
         }
     }
 }
 
 /* ------------------------------------------------------------- post-process */
+
+/* A smoothstep tone map: everything below the toe falls towards black,
+ * everything above the shoulder saturates towards full brightness. */
+static double tone_map(double l, double amount)
+{
+    const double lo = 0.06, hi = 0.58;
+    double x = clampd((l - lo) / (hi - lo), 0.0, 1.0);
+    double s = x * x * (3.0 - 2.0 * x);
+    return mv_lerp(l, s, amount);
+}
+
+static Rgb tone_rgb(Rgb c, double amount, double extra)
+{
+    double l = (0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b) / 255.0;
+    if (l < 1e-4) return c;
+    return rgb_scale(c, tone_map(l, amount) * extra / l);
+}
+
+void fb_contrast(Frame *f, double amount)
+{
+    if (amount <= 0.001) return;
+    if (amount > 1.0) amount = 1.0;
+    int n = f->w * f->h;
+    for (int i = 0; i < n; i++) {
+        Cell *c = &f->cells[i];
+        /* Ink made of sparse glyphs is texture, dense glyphs are structure.
+         * Sink the mid-brightness texture a little; never touch highlights. */
+        double d = mv_density(c->ch);
+        double l = (0.2126 * c->fg.r + 0.7152 * c->fg.g + 0.0722 * c->fg.b) / 255.0;
+        double fade = clampd((0.65 - l) / 0.65, 0.0, 1.0);
+        double extra = 1.0 - 0.45 * (1.0 - d) * amount * fade;
+        c->fg = tone_rgb(c->fg, amount, extra);
+        /* The background is the canvas the user asked for, not artwork: it
+         * must survive the tone map untouched. */
+    }
+}
+
+void fb_scrim_ellipse(Frame *f, double cx, double cy, double rx, double ry, double k)
+{
+    if (k <= 0.0 || rx <= 0 || ry <= 0) return;
+    int x0 = (int)floor(cx - rx * 1.1), x1 = (int)ceil(cx + rx * 1.1);
+    int y0 = (int)floor(cy - ry * 1.1), y1 = (int)ceil(cy + ry * 1.1);
+    for (int y = y0; y <= y1; y++) {
+        if (y < 0 || y >= f->h) continue;
+        for (int x = x0; x <= x1; x++) {
+            if (x < 0 || x >= f->w) continue;
+            double dx = (x - cx) / rx, dy = (y - cy) / ry;
+            double d = sqrt(dx * dx + dy * dy);
+            if (d > 1.1) continue;
+            double a = clampd((1.1 - d) / 0.35, 0.0, 1.0);
+            Cell *c = &f->cells[y * f->w + x];
+            c->fg = rgb_scale(c->fg, 1.0 - k * a);
+            if (c->has_bg == 1) c->bg = rgb_scale(c->bg, 1.0 - k * a);
+        }
+    }
+}
 
 void fb_shade(Frame *f, double k)
 {
@@ -600,6 +672,11 @@ void fb_blend(Frame *dst, const Frame *a, const Frame *b, double t, int mode, in
     if (flash > 0) dip = 1.0;
 
     int slide = (mode == TR_SLIDE_L) ? (int)lround((1.0 - t) * dst->w) : 0;
+    double maxr = 0.0;
+    if (flash > 0.001) {
+        double cx0 = (dst->w - 1) / 2.0, cy0 = (dst->h - 1) / 2.0;
+        maxr = sqrt(cx0 * cx0 + cy0 * cy0);
+    }
 
     for (int y = 0; y < dst->h; y++) {
         for (int x = 0; x < dst->w; x++) {
@@ -622,10 +699,15 @@ void fb_blend(Frame *dst, const Frame *a, const Frame *b, double t, int mode, in
             if (out.has_bg) out.bg = rgb_scale(out.bg, k);
             if (!out.ch) out.ch = ' ';
             if (flash > 0.001) {
+                /* Not a flat wall of white: the flash is brightest in the
+                 * middle, so the eye keeps some structure to hold on to. */
+                double dx = x - (dst->w - 1) / 2.0;
+                double dy = y - (dst->h - 1) / 2.0;
+                double rr = sqrt(dx * dx + dy * dy) / (maxr > 0 ? maxr : 1.0);
+                double amt = flash * 0.66 * (1.0 - 0.35 * rr);
                 Rgb base = out.ch == ' ' ? RGB(0, 0, 0) : out.fg;
-                Rgb mixed = rgb_mix(base, flash_col, flash * 0.85);
-                if (out.ch == ' ' && flash > 0.35) out.ch = mv_char_for(flash * 0.4);
-                out.fg = mixed;
+                out.fg = rgb_mix(base, flash_col, amt);
+                if (out.ch == ' ' && amt > 0.3) out.ch = mv_char_for(amt * 0.5);
             }
             dst->cells[y * dst->w + x] = out;
         }

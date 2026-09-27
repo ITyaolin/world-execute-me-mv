@@ -94,7 +94,7 @@ void lyrics_draw(Frame *f, int t_ms, Rgb base, Rgb accent, int show_progress)
     int line = lyric_display_line(t_ms);
     if (line < 0 || f->h < 3) return;
     const MvLyric *l = &LYRIC_LINES[line];
-    Rgb dim = rgb_scale(base, 0.55);
+    Rgb dim = rgb_scale(base, 0.72);
     Rgb sung = rgb_mix(base, accent, 0.75);
     int y = f->h - 2;
 
@@ -104,7 +104,7 @@ void lyrics_draw(Frame *f, int t_ms, Rgb base, Rgb accent, int show_progress)
         int w = (int)strlen(prev);
         if (w <= f->w - 2) {
             fb_dim_rect(f, (f->w - w) / 2 - 1, f->h - 3, w + 2, 1, 0.35);
-            fb_text(f, (f->w - w) / 2, f->h - 3, prev, rgb_scale(base, 0.32));
+            fb_text(f, (f->w - w) / 2, f->h - 3, prev, rgb_scale(base, 0.48));
         }
     }
 
@@ -146,7 +146,7 @@ void lyrics_draw(Frame *f, int t_ms, Rgb base, Rgb accent, int show_progress)
     char stamp[32];
     int secs = t_ms / 1000;
     snprintf(stamp, sizeof stamp, "%d:%02d", secs / 60, secs % 60);
-    fb_text(f, 1, f->h - 1, stamp, rgb_scale(base, 0.5));
+    fb_text(f, 1, f->h - 1, stamp, rgb_scale(base, 0.65));
 
     int left = 8, right = f->w - 8;
     int barw = right - left - 2;
@@ -159,11 +159,11 @@ void lyrics_draw(Frame *f, int t_ms, Rgb base, Rgb accent, int show_progress)
         for (int i = 0; i < barw - 2; i++) bar[1 + i] = i < filled ? '=' : '-';
         bar[barw - 1] = ']';
         bar[barw] = 0;
-        fb_text(f, left, f->h - 1, bar, rgb_scale(accent, 0.75));
+        fb_text(f, left, f->h - 1, bar, rgb_scale(accent, 0.9));
     }
     int total_secs = LYRIC_TOTAL_MS / 1000;
     snprintf(stamp, sizeof stamp, "%d:%02d", total_secs / 60, total_secs % 60);
-    fb_text(f, f->w - (int)strlen(stamp) - 1, f->h - 1, stamp, rgb_scale(base, 0.5));
+    fb_text(f, f->w - (int)strlen(stamp) - 1, f->h - 1, stamp, rgb_scale(base, 0.65));
 }
 
 void lyrics_draw_keywords(Frame *f, int t_ms, Rgb accent, Rgb base)

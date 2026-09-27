@@ -655,10 +655,21 @@ void fx_buildup(Ctx *c)
         fb_glitch(f, (int)(c->t * 8.0), (surge - 0.55) * 1.2, c2);
     }
     if (c->prog > 0.93) {
+        /* The white-out blooms out of the middle: a flat full-screen fill
+         * reads as one bright smear, a radial blast reads as an explosion. */
         double white = (c->prog - 0.93) / 0.07;
-        for (int y = 0; y < h; y++)
-            for (int x = 0; x < w; x++)
-                fb_put(f, x, y, white > 0.6 ? '#' : '+', rgb_scale(RGB(255, 255, 255), white));
+        double ex = w / 2.0, ey = (h - 3) / 2.0;
+        double mr = sqrt(ex * ex + ey * ey * 4.0);
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                double dx = x - ex, dy = (y - ey) * 2.0;
+                double r = sqrt(dx * dx + dy * dy) / (mr > 0 ? mr : 1.0);
+                double k = mv_clamp01(white * 1.15 - r * 1.90);
+                if (k < 0.07) continue;
+                fb_put(f, x, y, k > 0.62 ? '#' : (k > 0.32 ? '*' : '.'),
+                       rgb_scale(RGB(255, 255, 255), k));
+            }
+        }
     }
 }
 
@@ -747,8 +758,11 @@ void fx_count(Ctx *c)
         double a = i / 60.0 * 2.0 * M_PI + n * 0.3;
         double len = fmin(w * 0.5, h) * mv_clamp01(1.0 - age * 0.7) *
                      (0.4 + 0.6 * mv_rand01(c->sc->seed + (uint32_t)i * 7u));
+        double life = mv_clamp01(1.0 - age * 0.7);
+        double ray = (i % 3 == 0) ? 1.0 : (i % 3 == 1 ? 0.62 : 0.38);
         fb_line(f, w / 2.0, (h - 3) / 2.0, w / 2.0 + cos(a) * len,
-                (h - 3) / 2.0 + sin(a) * len * 0.5, i % 4 ? '-' : '+', rgb_scale(col, 0.5));
+                (h - 3) / 2.0 + sin(a) * len * 0.5, i % 4 ? '-' : '+',
+                rgb_scale(col, life * 0.6 * ray));
     }
     char num[16];
     snprintf(num, sizeof num, "%d", n);

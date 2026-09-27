@@ -92,6 +92,9 @@ static void usage(FILE *out, const char *argv0)
 "  --fps N             frames per second (default 30)\n"
 "  --size WxH          force the canvas size instead of asking the terminal\n"
 "  --color MODE        auto|truecolor|256|16|mono\n"
+"  --contrast N        tone map strength, 0..1 (default 0.75; 0 = flat)\n"
+"  --bg RRGGBB         canvas colour (default 030409, --bg default = use the\n"
+"                      terminal's own background)\n"
 "  --unicode           use block glyphs for the big typography\n"
 "  --no-karaoke        hide the lyric line\n"
 "  --no-banner         hide the big keyword typography\n"
@@ -144,9 +147,11 @@ static void compose(Frame *out, Frame *tn, Frame *to, int t_ms)
     Rgb c1 = idx >= 0 ? SCENES[idx].c1 : RGB(120, 160, 255);
     Rgb c2 = idx >= 0 ? SCENES[idx].c2 : RGB(235, 245, 255);
 
-    if (CFG.grain) fb_grain(out, t_ms / 33, 0.05, c1);
-    fb_scanlines(out, 0.10);
-    fb_vignette(out, 0.30);
+    /* Separation first: shadows down, highlights up. */
+    fb_contrast(out, CFG.contrast);
+    if (CFG.grain) fb_grain(out, t_ms / 33, 0.02, RGB(120, 128, 150));
+    fb_scanlines(out, 0.05);
+    fb_vignette(out, 0.12);
 
     if (CFG.banner) lyrics_draw_keywords(out, t_ms, c2, c1);
     if (CFG.karaoke) lyrics_draw(out, t_ms, c2, c1, 1);
@@ -308,7 +313,7 @@ static void frames_resize(Frame *a, Frame *b, Frame *c, Frame *d, int w, int h)
     frame_alloc(b, w, h);
     frame_alloc(c, w, h);
     frame_alloc(d, w, h);
-    frame_clear(d, RGB(0, 0, 0));
+    frame_invalidate(d);
 }
 
 static void show_once(int *quit_by_signal)
@@ -338,7 +343,7 @@ static void show_once(int *quit_by_signal)
     frame_alloc(&tn, w, h);
     frame_alloc(&to, w, h);
     frame_alloc(&prev, w, h);
-    frame_clear(&prev, RGB(0, 0, 0));
+    frame_invalidate(&prev);
 
     double t0 = mv_now();
     long frame = 0;
@@ -401,11 +406,17 @@ int main(int argc, char **argv)
         { "export-to",     required_argument, NULL, 1021 },
         { "export-step",   required_argument, NULL, 1022 },
         { "selftest",      no_argument,       NULL, 1023 },
+        { "bg",            required_argument, NULL, 1024 },
+        { "contrast",      required_argument, NULL, 1025 },
         { "quiet",         no_argument,       NULL, 'q' },
         { "help",          no_argument,       NULL, 'h' },
         { "version",       no_argument,       NULL, 'V' },
         { NULL, 0, NULL, 0 }
     };
+
+    CFG.canvas_solid = true;
+    CFG.canvas_bg = RGB(3, 4, 9);
+    CFG.contrast = 0.75;
 
     int c;
     while ((c = getopt_long(argc, argv, "qhV", opts, NULL)) != -1) {
@@ -455,6 +466,27 @@ int main(int argc, char **argv)
         case 1021: CFG.export_to = atoi(optarg); break;
         case 1022: CFG.export_step = atoi(optarg); break;
         case 1023: CFG.selftest = true; break;
+        case 1024:
+            if (!strcmp(optarg, "default") || !strcmp(optarg, "none")) {
+                CFG.canvas_solid = false;
+            } else {
+                unsigned r = 0, g = 0, b = 0;
+                char extra = 0;
+                if (strlen(optarg) != 6 ||
+                    sscanf(optarg, "%2x%2x%2x%c", &r, &g, &b, &extra) != 3) {
+                    fprintf(stderr, "%s: bad --bg '%s' (want RRGGBB or default)\n",
+                            PROG_NAME, optarg);
+                    return 2;
+                }
+                CFG.canvas_solid = true;
+                CFG.canvas_bg = RGB((int)r, (int)g, (int)b);
+            }
+            break;
+        case 1025:
+            CFG.contrast = atof(optarg);
+            if (CFG.contrast < 0) CFG.contrast = 0;
+            if (CFG.contrast > 1) CFG.contrast = 1;
+            break;
         case 'q': CFG.quiet = true; break;
         case 'h': usage(stdout, argv[0]); return 0;
         case 'V': printf("%s %s\n", PROG_NAME, VERSION); return 0;
