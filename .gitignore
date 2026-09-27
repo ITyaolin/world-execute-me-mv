@@ -1,0 +1,18 @@
+# build products
+*.o
+mv
+*.dSYM
+
+# python
+__pycache__/
+*.pyc
+
+# scratch
+/tmp/
+# generated previews (rebuild with `make preview`)
+preview/frames/
+preview/png/
+preview/story/
+
+# scratch build dir used during development
+.devbuild/
