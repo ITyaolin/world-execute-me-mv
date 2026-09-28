@@ -13,11 +13,25 @@
 make && ./start
 ```
 
+音频与歌词**与可执行文件放在同一层**：
+
+```
+mili-mv/
+├── start                        ← 可执行文件（make 生成）
+├── world.execute (me) ;.mp3     ← 音频（自备，不随仓库发布）
+├── world.execute (me) ;.lrc     ← 歌词（自备，不随仓库发布）
+├── world.execute (me) ;.yrc     ← 歌词（自备，不随仓库发布）
+├── Makefile
+├── src/                         ← 源码
+├── tools/                       ← 辅助脚本
+└── preview/                     ← 参考静帧与 GIF
+```
+
 依赖：C11 编译器、make、POSIX 终端，外加（可选）命令行 mp3 播放器。
 
-音频与歌词（`world.execute (me) ;.mp3` / `.lrc` / `.yrc`）就和可执行文件放在**同一目录**，
-所以整个目录可以直接拷走；程序会自动取用它旁边那首 mp3，不需要任何参数。
-上手、文件布局、排障与修改记录见 [说明.md](说明.md)。
+程序按「可执行文件所在目录 → 当前目录 → 两者各自的上级目录」的顺序找 mp3，所以 `start`
+旁边这首一定优先命中，不需要任何参数；整个目录可以直接拷走。仓库不附带音频文件，
+请自备同名 mp3 放在这里（或 `--audio PATH` 指定、`MV_MP3` 环境变量指定）。
 
 没有 tty 的环境（如 CI）也能用，只是看不到动画：
 
@@ -129,7 +143,7 @@ tools/ptycheck.py    在伪终端里跑一遍，检查终端是否被正确恢�
 
 ```sh
 make font     # 需要 ImageMagick + Liberation Mono（或改 tools/gen_font.py 字体路径）
-make data     # 读取与可执行文件同层的 .lrc / .yrc
+make data     # 从同层的 .lrc / .yrc 生成（这两个文件需自备）
 ```
 
 `make data` 在 LRC 与 YRC 时间差超过 300 ms 时给出提示，并以 YRC 为准。

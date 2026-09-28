@@ -1,3 +1,8 @@
+# 音频与歌词：不随仓库发布（自备，放在可执行文件同层）
+*.mp3
+*.lrc
+*.yrc
+
 # build products
 *.o
 *.dSYM
