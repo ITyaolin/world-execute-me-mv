@@ -106,7 +106,7 @@ static void usage(FILE *out, const char *argv0)
 "offline (no terminal needed)\n"
 "  --list              print the scene table with its timings\n"
 "  --dump MS           print one frame as plain text\n"
-"  --export DIR        write frames as .mvf files for tools/mvframe2png.py\n"
+"  --export DIR        write frames as .mvf files for tools/mvpreview.py\n"
 "  --export-from MS    first frame time (default 0)\n"
 "  --export-to MS      last frame time (default 10000)\n"
 "  --export-step MS    spacing between frames (default 100)\n"
@@ -115,9 +115,9 @@ static void usage(FILE *out, const char *argv0)
 "  -V, --version       version\n"
 "\n"
 "examples\n"
-"  make && ./mv                        # full show, audio if possible\n"
-"  ./mv --no-audio --color 256         # safe mode for an old terminal\n"
-"  ./mv --start 1:03 --offset -80      # re-sync the picture to your ears\n",
+"  make && ./start                        # full show, audio if possible\n"
+"  ./start --no-audio --color 256         # safe mode for an old terminal\n"
+"  ./start --start 1:03 --offset -80      # re-sync the picture to your ears\n",
             argv0);
 }
 

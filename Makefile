@@ -1,6 +1,6 @@
 # world.execute (me); -- terminal ASCII music video
 #
-#   make            build ./mv
+#   make            build ./start
 #   make run        build and play
 #   make check      run the built-in selftest (timeline + every effect)
 #   make preview    render PNG/GIF stills of the show into preview/
@@ -17,7 +17,7 @@ SRC := src/main.c src/term.c src/gfx.c src/lyrics.c src/scenes.c \
 OBJ := $(SRC:.c=.o)
 HDR := $(wildcard src/*.h)
 
-BIN := mv
+BIN := start
 
 all: $(BIN)
 

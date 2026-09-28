@@ -683,7 +683,10 @@ void fx_wave(Ctx *c)
     for (double x = x0; x <= x1; x += 0.5) {
         double ph = (x - x0) * 0.22 - c->t * 3.0;
         double s = sin(ph);
-        double rect = fabs(s) * 2.0 - 1.0;
+        /* 整流 = 全波整流：只剩正半周，恒 >= 0，再收敛成"直流电平 + 小纹波"。
+         * 旧代码写成 fabs(s)*2-1，等于把 |sin| 又拉回 [-1,1]，于是"直流"照样
+         * 有负半周。这里 rect 全程 >= 0，所以 morph 一旦过半就再也不会下到中轴以下。 */
+        double rect = 0.84 + 0.16 * fabs(s);
         double v = mv_lerp(s, rect, morph);
         double y = cy - v * A;
         if (x > x0) fb_line(f, prevx, prevy, x, y, '#', rgb_scale(c2, 0.95 - morph * 0.1));

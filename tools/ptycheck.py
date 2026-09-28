@@ -5,7 +5,7 @@ This is the only way to exercise the code paths that a pipe never reaches: raw
 mode, the alternate screen, cursor hiding, SIGWINCH resizing and the guarantee
 that Ctrl-C leaves the terminal exactly as it was.
 
-  tools/ptycheck.py --bin ./mv --seconds 3
+  tools/ptycheck.py --bin ./start --seconds 3
 """
 import argparse
 import fcntl
@@ -49,7 +49,7 @@ def drain(fd, buf, seconds):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--bin", default=os.path.join(os.path.dirname(__file__), "..", "mv"))
+    ap.add_argument("--bin", default=os.path.join(os.path.dirname(__file__), "..", "start"))
     ap.add_argument("--seconds", type=float, default=3.0)
     ap.add_argument("--size", default="80x24")
     ap.add_argument("--resize-to", default="100x30")

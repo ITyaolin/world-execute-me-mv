@@ -8,7 +8,7 @@ ASCII 艺术 MV：每一句歌词都有对应的画面，画面之间用溶解�
 都是播放时间的纯函数），mp3 只是顺带播放，找不到播放器时它会静默继续跑。
 
 ```
-$ make && ./mv
+$ make && ./start
 ```
 
 ```
@@ -35,17 +35,17 @@ $ make && ./mv
 依赖很少：一个 C11 编译器、make、POSIX 终端，外加（可选）一个命令行 mp3 播放器。
 
 ```sh
-make                # 生成 ./mv
+make                # 生成 ./start
 make check          # 自检：时间轴是否连续、44 个特效能否在任意尺寸下渲染
-./mv                # 播放（自动找歌、自动找播放器；找不到就当默片）
+./start                # 播放（自动找歌、自动找播放器；找不到就当默片）
 make run            # 同上
 ```
 
 没有 tty 的环境（比如 CI）也能用，只是看不到动画：
 
 ```sh
-./mv --list         # 打印 49 个场景的时间表
-./mv --dump 68000   # 把第 68 秒那一帧按纯文本打印出来
+./start --list         # 打印 49 个场景的时间表
+./start --dump 68000   # 把第 68 秒那一帧按纯文本打印出来
 ```
 
 ## 2. 快捷键
@@ -82,8 +82,8 @@ make run            # 同上
 例：在窄终端里省点事，并把手感对齐耳机：
 
 ```sh
-./mv --no-audio --color 256 --size 80x24
-./mv --start 1:03 --offset -80
+./start --no-audio --color 256 --size 80x24
+./start --start 1:03 --offset -80
 ```
 
 ### 看着不够清楚时
@@ -92,11 +92,11 @@ make run            # 同上
 如果还是觉得主体融进背景：
 
 ```sh
-./mv --contrast 0.9        # 更狠的明暗分离：背景压下去，主体顶上来
-./mv --contrast 0          # 关掉曲线，看看"原味"有多灰
-./mv --bg 000000           # 换纯黑底
-./mv --bg 101018           # 稍亮一点的底板
-./mv --bg default          # 用终端自己的背景色
+./start --contrast 0.9        # 更狠的明暗分离：背景压下去，主体顶上来
+./start --contrast 0          # 关掉曲线，看看"原味"有多灰
+./start --bg 000000           # 换纯黑底
+./start --bg 101018           # 稍亮一点的底板
+./start --bg default          # 用终端自己的背景色
 ```
 
 `--contrast` 做三件事：把阴影推向黑、把高光推向纯亮，并且**只压暗由稀疏字符
@@ -111,7 +111,7 @@ ASCII 里"纹理"和"结构"的区别。程序里的精灵另有一层椭圆"聚
 再用 ImageMagick 合成 GIF：
 
 ```sh
-./mv --export preview/frames --export-from 0 --export-to 30000 --export-step 100 --size 80x24
+./start --export preview/frames --export-from 0 --export-to 30000 --export-step 100 --size 80x24
 python3 tools/mvpreview.py --no-export --frames preview/frames --out preview/png \
         --scale 2 --gif preview/opening.gif --sheet preview/sheet.png
 make preview        # 等价的一步到位命令

@@ -2,7 +2,7 @@
 """Rasterise the MV's exported frames into PNGs (and optionally a GIF).
 
 The C program can dump what it would draw at any moment as a tiny text format
-(`./mv --export DIR --export-from ... --export-to ... --export-step ...`), which
+(`./start --export DIR --export-from ... --export-to ... --export-step ...`), which
 is exactly what runs on screen: one character plus one foreground colour per
 terminal cell.  This tool replays that through the *same* baked 8x16 bitmap font
 the program uses for its big typography (src/font_data.h), so the preview looks
@@ -12,7 +12,7 @@ It needs nothing but the Python standard library; GIF/sheet assembly is handed t
 ImageMagick when available.
 
 Examples
-  tools/mvpreview.py --bin ./mv --from 0 --to 30000 --step 100 --gif preview/opening.gif
+  tools/mvpreview.py --bin ./start --from 0 --to 30000 --step 100 --gif preview/opening.gif
   tools/mvpreview.py --frames preview/frames --out preview/png --scale 2
 """
 import argparse
@@ -149,7 +149,7 @@ def have(cmd):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--bin", default=os.path.join(ROOT, "mv"),
+    ap.add_argument("--bin", default=os.path.join(ROOT, "start"),
                     help="the MV binary, used to export frames when needed")
     ap.add_argument("--frames", default=os.path.join(ROOT, "preview", "frames"),
                     help="directory of .mvf frames")
