@@ -1,7 +1,7 @@
 # build products
 *.o
-mv
 *.dSYM
+start
 
 # python
 __pycache__/

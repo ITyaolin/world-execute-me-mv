@@ -18,8 +18,21 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
 SONG_DIR = os.path.abspath(os.path.join(ROOT, ".."))
-DEFAULT_LRC = os.path.join(SONG_DIR, "world.execute (me) ;.lrc")
-DEFAULT_YRC = os.path.join(SONG_DIR, "world.execute (me) ;.yrc")
+# 音频与歌词现在与可执行文件放在同一层（仓库根）：先找本地，再退回上级目录。
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(_HERE)
+
+
+def _pick(name):
+    for d in (_ROOT, SONG_DIR):
+        p = os.path.join(d, name)
+        if os.path.isfile(p):
+            return p
+    return os.path.join(SONG_DIR, name)
+
+
+DEFAULT_LRC = _pick("world.execute (me) ;.lrc")
+DEFAULT_YRC = _pick("world.execute (me) ;.yrc")
 DEFAULT_OUT = os.path.join(ROOT, "src", "lyrics_data.h")
 
 TOTAL_MS = 212000      # playback length: music ends 207.5s, tail silence to 211.9s
