@@ -15,6 +15,10 @@ make && ./start
 
 依赖：C11 编译器、make、POSIX 终端，外加（可选）命令行 mp3 播放器。
 
+音频与歌词（`world.execute (me) ;.mp3` / `.lrc` / `.yrc`）就和可执行文件放在**同一目录**，
+所以整个目录可以直接拷走；程序会自动取用它旁边那首 mp3，不需要任何参数。
+上手、文件布局、排障与修改记录见 [说明.md](说明.md)。
+
 没有 tty 的环境（如 CI）也能用，只是看不到动画：
 
 ```sh
@@ -125,7 +129,7 @@ tools/ptycheck.py    在伪终端里跑一遍，检查终端是否被正确恢�
 
 ```sh
 make font     # 需要 ImageMagick + Liberation Mono（或改 tools/gen_font.py 字体路径）
-make data     # 需要上层目录里的 .lrc / .yrc
+make data     # 读取与可执行文件同层的 .lrc / .yrc
 ```
 
 `make data` 在 LRC 与 YRC 时间差超过 300 ms 时给出提示，并以 YRC 为准。
